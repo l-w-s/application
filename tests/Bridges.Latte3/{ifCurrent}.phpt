@@ -1,16 +1,18 @@
 <?php
 
 /**
- * Test: isLinkCurrent()
+ * @phpVersion 8.0
  */
 
 declare(strict_types=1);
 
 use Tester\Assert;
 
-
 require __DIR__ . '/../bootstrap.php';
 
+if (version_compare(Latte\Engine::VERSION, '3', '<')) {
+	Tester\Environment::skip('Test for Latte 3');
+}
 
 Tester\Environment::bypassFinals();
 
@@ -30,23 +32,12 @@ $factory->createTemplate($presenter);
 $latte->setLoader(new Latte\Loaders\StringLoader);
 
 Assert::matchFile(
-	__DIR__ . '/expected/UIMacros.isLinkCurrent.phtml',
-	$latte->compile(
+	__DIR__ . '/expected/ifCurrent.phtml',
+	@$latte->compile( // is deprecated
 		<<<'XX'
-<a n:href="default" n:class="$presenter->isLinkCurrent() ? current">n:href before n:class</a>
+			{ifCurrent}empty{/ifCurrent}
 
-<a n:class="$presenter->isLinkCurrent() ? current" n:href="default">n:href after n:class</a>
-
-<a href="{link default}" n:class="$presenter->isLinkCurrent() ? current">href before n:class</a>
-
-<a n:class="$presenter->isLinkCurrent() ? current" href="{link default}">href after n:class</a>
-
-{ifCurrent}empty{/ifCurrent}
-
-{ifCurrent default}default{/ifCurrent}
-
-<a n:class="isLinkCurrent(default) ? current" n:href="default">custom function</a>
-
-XX
-	)
+			{ifCurrent default}default{/ifCurrent}
+			XX,
+	),
 );
