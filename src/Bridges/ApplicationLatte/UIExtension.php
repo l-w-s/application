@@ -10,6 +10,10 @@ declare(strict_types=1);
 namespace Nette\Bridges\ApplicationLatte;
 
 use Latte;
+use Latte\Compiler\Nodes\Php;
+use Latte\Compiler\Nodes\TemplateNode;
+use Latte\Compiler\Tag;
+use Latte\Essential\Nodes\PrintNode;
 use Nette;
 use Nette\Application\UI;
 
@@ -45,7 +49,7 @@ final class UIExtension extends Latte\Extension
 			'coreParentFinder' => [$this, 'findLayoutTemplate'],
 			'uiControl' => $this->control,
 			'uiPresenter' => $presenter,
-			//'snippetBridge' => $this->control ? new SnippetBridge($this->control) : null,
+			'snippetDriver' => $this->control ? new SnippetDriver($this->control) : null,
 			'uiNonce' => $httpResponse ? $this->findNonce($httpResponse) : null,
 		];
 	}
@@ -56,12 +60,37 @@ final class UIExtension extends Latte\Extension
 		return [
 			'n:href' => [Nodes\LinkNode::class, 'create'],
 			'n:nonce' => [Nodes\NNonceNode::class, 'create'],
+			'_' => [$this, 'parseTranslate'],
+			'translate' => [Nodes\TranslateNode::class, 'create'],
 			'control' => [Nodes\ControlNode::class, 'create'],
 			'plink' => [Nodes\LinkNode::class, 'create'],
 			'link' => [Nodes\LinkNode::class, 'create'],
 			'ifCurrent' => [Nodes\IfCurrentNode::class, 'create'],
 			'templatePrint' => [Nodes\TemplatePrintNode::class, 'create'],
+			'snippet' => [Nodes\SnippetNode::class, 'create'],
+			'snippetArea' => [Nodes\SnippetAreaNode::class, 'create'],
 		];
+	}
+
+
+	public function getPasses(): array
+	{
+		return [
+			'snippetRendering' => [$this, 'snippetRenderingPass'],
+		];
+	}
+
+
+	/**
+	 * Render snippets instead of template in snippet-mode.
+	 */
+	public function snippetRenderingPass(TemplateNode $templateNode): void
+	{
+		array_unshift($templateNode->main->children, new Latte\Compiler\Nodes\AuxiliaryNode(fn() => <<<'XX'
+			if ($this->global->snippetDriver?->renderSnippets($this->blocks[self::LayerSnippet], $this->params)) { return; }
+
+
+			XX));
 	}
 
 
@@ -73,6 +102,26 @@ final class UIExtension extends Latte\Extension
 			&& !$template->getReferringTemplate()
 				? $presenter->findLayoutTemplateFile()
 				: null;
+	}
+
+
+	/**
+	 * {_ ...}
+	 */
+	public function parseTranslate(Tag $tag): PrintNode
+	{
+		$tag->outputMode = $tag::OutputKeepIndentation;
+		$tag->expectArguments();
+		$node = new PrintNode;
+		$node->expression = $tag->parser->parseExpression();
+		$args = [];
+		if ($tag->parser->stream->tryConsume(',')) {
+			$args = Php\Builder::arrayToArguments($tag->parser->parseArguments());
+		}
+		$node->modifier = $tag->parser->parseModifier();
+		array_unshift($node->modifier->filters, new Php\FilterNode(new Php\IdentifierNode('translate'), $args));
+		$node->modifier->escape = true;
+		return $node;
 	}
 
 
