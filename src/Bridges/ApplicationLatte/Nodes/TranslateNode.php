@@ -12,6 +12,7 @@ namespace Nette\Bridges\ApplicationLatte\Nodes;
 use Latte\Compiler\Nodes\AreaNode;
 use Latte\Compiler\Nodes\FragmentNode;
 use Latte\Compiler\Nodes\NopNode;
+use Latte\Compiler\Nodes\Php\Expression\ArrayNode;
 use Latte\Compiler\Nodes\Php\ModifierNode;
 use Latte\Compiler\Nodes\StatementNode;
 use Latte\Compiler\Nodes\TextNode;
@@ -25,6 +26,7 @@ use Latte\Compiler\Tag;
 class TranslateNode extends StatementNode
 {
 	public AreaNode $content;
+	public ArrayNode $args;
 	public ModifierNode $modifier;
 
 
@@ -34,6 +36,7 @@ class TranslateNode extends StatementNode
 		$tag->outputMode = $tag::OutputKeepIndentation;
 
 		$node = new static;
+		$node->args = $tag->parser->parseArguments();
 		$node->modifier = $tag->parser->parseModifier();
 		$node->modifier->escape = true;
 		if ($tag->void) {
@@ -55,11 +58,12 @@ class TranslateNode extends StatementNode
 			return $context->format(
 				<<<'XX'
 					$ʟ_fi = new LR\FilterInfo(%dump);
-					echo %modifyContent($this->filters->filterContent('translate', $ʟ_fi, %dump)) %line;
+					echo %modifyContent($this->filters->filterContent('translate', $ʟ_fi, %dump, %args?)) %line;
 					XX,
 				implode('', $context->getEscapingContext()),
 				$this->modifier,
 				$this->content->children[0]->content,
+				$this->args,
 				$this->position,
 			);
 
@@ -72,11 +76,12 @@ class TranslateNode extends StatementNode
 						$ʟ_tmp = ob_get_clean();
 					}
 					$ʟ_fi = new LR\FilterInfo(%dump);
-					echo %modifyContent($this->filters->filterContent('translate', $ʟ_fi, $ʟ_tmp)) %line;
+					echo %modifyContent($this->filters->filterContent('translate', $ʟ_fi, $ʟ_tmp, %args?)) %line;
 					XX,
 				$this->content,
 				implode('', $context->getEscapingContext()),
 				$this->modifier,
+				$this->args,
 				$this->position,
 			);
 		}
@@ -86,6 +91,7 @@ class TranslateNode extends StatementNode
 	public function &getIterator(): \Generator
 	{
 		yield $this->content;
+		yield $this->args;
 		yield $this->modifier;
 	}
 }

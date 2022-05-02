@@ -116,7 +116,7 @@ final class UIExtension extends Latte\Extension
 		$node->expression = $tag->parser->parseExpression();
 		$args = [];
 		if ($tag->parser->stream->tryConsume(',')) {
-			$args = Php\Builder::arrayToArguments($tag->parser->parseArguments());
+			$args = $tag->parser->parseArguments()->toArguments();
 		}
 		$node->modifier = $tag->parser->parseModifier();
 		array_unshift($node->modifier->filters, new Php\FilterNode(new Php\IdentifierNode('translate'), $args));
