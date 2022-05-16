@@ -10,8 +10,10 @@ declare(strict_types=1);
 namespace Nette\Bridges\ApplicationLatte;
 
 use Latte;
+use Latte\Compiler\NodeEvaluator;
 use Latte\Compiler\Nodes\Php;
 use Latte\Compiler\Tag;
+use Latte\Engine;
 use Latte\Essential\Nodes\PrintNode;
 use Nette\Localization\Translator;
 
@@ -23,6 +25,7 @@ final class TranslatorExtension extends Latte\Extension
 {
 	public function __construct(
 		private ?Translator $translator,
+		private ?string $key = null,
 	) {
 	}
 
@@ -31,7 +34,9 @@ final class TranslatorExtension extends Latte\Extension
 	{
 		return [
 			'_' => [$this, 'parseTranslate'],
-			'translate' => [Nodes\TranslateNode::class, 'create'],
+			'translate' => function (Tag $tag): \Generator {
+				return Nodes\TranslateNode::create($tag, $this->key ? $this->translator : null);
+			},
 		];
 	}
 
@@ -48,6 +53,12 @@ final class TranslatorExtension extends Latte\Extension
 	}
 
 
+	public function getCacheKey(Engine $engine): mixed
+	{
+		return $this->key;
+	}
+
+
 	/**
 	 * {_ ...}
 	 */
@@ -61,8 +72,25 @@ final class TranslatorExtension extends Latte\Extension
 		if ($tag->parser->stream->tryConsume(',')) {
 			$args = $tag->parser->parseArguments();
 		}
+
 		$node->modifier = $tag->parser->parseModifier();
 		$node->modifier->escape = true;
+
+		if ($this->translator && $this->key) {
+			$evaluator = new NodeEvaluator;
+			try {
+				$translation = $this->translator->translate(
+					$evaluator->toValue($node->expression),
+					...$evaluator->toValue($args)
+				);
+				if (is_string($translation)) {
+					$node->expression = new Php\Scalar\StringNode($translation);
+					return $node;
+				}
+			} catch (\InvalidArgumentException) {
+			}
+		}
+
 		array_unshift($node->modifier->filters, new Php\FilterNode(new Php\IdentifierNode('translate'), $args->toArguments()));
 		return $node;
 	}
