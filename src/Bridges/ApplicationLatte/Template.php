@@ -117,7 +117,8 @@ class Template implements Nette\Application\UI\Template
 				}
 			);
 		} else {
-			$this->latte->addExtension(new TranslatorExtension($translator, $language));
+			$cb = $translator ? [$translator, 'translate'] : null;
+			$this->latte->addExtension(new Latte\Essential\TranslatorExtension($cb, $language));
 		}
 		return $this;
 	}
