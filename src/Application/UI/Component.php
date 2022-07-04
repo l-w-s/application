@@ -8,6 +8,7 @@
 namespace Nette\Application\UI;
 
 use Nette;
+use ReturnTypeWillChange;
 
 
 /**
@@ -368,7 +369,7 @@ abstract class Component extends Nette\ComponentModel\Container implements ISign
 	 * @param  Nette\ComponentModel\IComponent
 	 * @return void
 	 */
-	public function offsetSet($name, $component)
+	#[ReturnTypeWillChange] public function offsetSet($name, $component)
 	{
 		$this->addComponent($component, $name);
 	}
@@ -380,7 +381,7 @@ abstract class Component extends Nette\ComponentModel\Container implements ISign
 	 * @return Nette\ComponentModel\IComponent
 	 * @throws Nette\InvalidArgumentException
 	 */
-	public function offsetGet($name)
+	#[ReturnTypeWillChange] public function offsetGet($name)
 	{
 		return $this->getComponent($name, true);
 	}
@@ -391,7 +392,7 @@ abstract class Component extends Nette\ComponentModel\Container implements ISign
 	 * @param  string  component name
 	 * @return bool
 	 */
-	public function offsetExists($name)
+	#[ReturnTypeWillChange] public function offsetExists($name)
 	{
 		return $this->getComponent($name, false) !== null;
 	}
@@ -402,7 +403,7 @@ abstract class Component extends Nette\ComponentModel\Container implements ISign
 	 * @param  string  component name
 	 * @return void
 	 */
-	public function offsetUnset($name)
+	#[ReturnTypeWillChange] public function offsetUnset($name)
 	{
 		$component = $this->getComponent($name, false);
 		if ($component !== null) {
