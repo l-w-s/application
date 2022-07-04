@@ -10,6 +10,7 @@ namespace Nette\Application\UI;
 use Nette;
 use Nette\Application\BadRequestException;
 use Nette\Reflection\ClassType;
+use ReturnTypeWillChange;
 
 
 /**
@@ -311,7 +312,7 @@ class ComponentReflection extends \ReflectionClass
 	/**
 	 * @return MethodReflection
 	 */
-	public function getMethod($name)
+	#[ReturnTypeWillChange] public function getMethod($name)
 	{
 		return new MethodReflection($this->getName(), $name);
 	}
@@ -320,7 +321,7 @@ class ComponentReflection extends \ReflectionClass
 	/**
 	 * @return MethodReflection[]
 	 */
-	public function getMethods($filter = -1)
+	#[ReturnTypeWillChange] public function getMethods($filter = -1)
 	{
 		foreach ($res = parent::getMethods($filter) as $key => $val) {
 			$res[$key] = new MethodReflection($this->getName(), $val->getName());
@@ -329,7 +330,7 @@ class ComponentReflection extends \ReflectionClass
 	}
 
 
-	public function __toString()
+	#[ReturnTypeWillChange] public function __toString()
 	{
 		trigger_error(__METHOD__ . ' is deprecated.', E_USER_DEPRECATED);
 		return $this->getName();
